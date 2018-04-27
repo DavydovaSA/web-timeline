@@ -1,33 +1,30 @@
+library('XML')
 library('RCurl')
-library('XML') 
-searchURL <- "https://yandex.ru/search/?text="
-searchURL.Api <- "https://yandex.ru/search/xml?query="
-search.settings <- c()
-file.output <- './Timeline.csv'
-search.queries <- c("пони %i",
-                    "эквестрия %i",
-                    "дружба %i")
-year.low <- 2000
-year.high <- 2010
-data <- data.frame()
-for(year in year.low:year.high){
-  print(paste("ПОИСК", year))
-  for(query in search.queries){
-    fileURL <- paste0(searchURL, sprintf(query, year))
-    fileURL <- URLencode(fileURL)
-    html <- getURL(fileURL, followLocation = T)
+
+year <- vector(mode = 'numeric', length = 0)
+header <- vector(mode = 'character', length = 0)
+sources <- vector(mode = 'character', length = 0)
+URL <- vector(mode = 'character', length = 0)
+l2 = 0
+for (i in 1:3){
+  if (i==1) {fileURL = "https://nova.rambler.ru/search?query=%D0%BC%D0%B0%D0%B9%20%D0%BB%D0%B8%D1%82%D0%BB%20%D0%BF%D0%BE%D0%BD%D0%B8%20%D0%BA%20"}
+  if (i==2) {fileURL = "https://nova.rambler.ru/search?query=%D0%BC%D0%B0%D0%B9%20%D0%BB%D0%B8%D1%82%D0%BB%20%D0%BF%D0%BE%D0%BD%D0%B8%20%D0%B4%D0%BE%20"}
+  if (i==3) {fileURL = "https://nova.rambler.ru/search?query=%D0%BC%D0%B0%D0%B9%20%D0%BB%D0%B8%D1%82%D0%BB%20%D0%BF%D0%BE%D0%BD%D0%B8%20%D0%BF%D0%BE%D1%81%D0%BB%D0%B5%20"}
+  for(j in 2009:2018){
+    Sys.sleep(10)
+    fileURL <- paste(fileURL,j)
+    html <- getURL(fileURL)
     doc <- htmlTreeParse(html, useInternalNodes = T)
     rootNode <- xmlRoot(doc)
-    l <- xpathSApply(rootNode, '//a[contains(@class, "link link_theme_normal organic__url link_cropped_no")]',
-                         xmlGetAttr, 'href')
-    h <- xpathSApply(rootNode, '//a[contains(@class, "link link_theme_normal organic__url")]',
-                           xmlValue)
-    s <- xpathSApply(rootNode, '//div[@class="path organic__path"]',
-                           xmlValue)
-    data.request <- data.frame(Year = year, Header = h, Source = s, URL = l)
-    data <- rbind(data, data.request)
-    Sys.sleep(0.1)
+    h <- c(header,xpathSApply(rootNode, '//a[@class = "b-serp-item__link"]', xmlValue))
+    s <- c(sources,xpathSApply(rootNode, '//article/span[2]/span', xmlValue))
+    UR <- c(URL,xpathSApply(rootNode, '//h2[@class = "b-serp-item__header"]/a', xmlGetAttr,'href'))
+    l <- length(h) - l2
+    l2 <- length(h)
+    year <- c(year,rep(j,l))
   }
 }
-write.csv(data, file = file.output, row.names = F)
-print('Конец')
+data <- data.frame(Year = year, Header = h, Source = s, URL = UR, stringsAsFactors = F)
+
+write.csv(data, './Timeline3.csv', row.names = F, fileEncoding = "UTF-8")
+print("Timeline.csv")
